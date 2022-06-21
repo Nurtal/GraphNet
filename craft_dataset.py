@@ -93,16 +93,16 @@ def stupid_data_generator():
     import random
 
     ## parameters
-    nb_file_to_generate = 10
-    nb_cell_in_file = 10
+    nb_file_to_generate = 300
+    nb_cell_in_file = 220
     header = ["centroid_X","centroid_Y","Vimentin","Machin","Truc","Cheesecake"]
 
     ## CLASS 1
     for f in range(0,nb_file_to_generate):
         #-> add specific graph for this class
-        vec1 = [4,4,random.randint(0,10),random.randint(0,5),random.randint(0,5), random.randint(40,60)]
-        vec2 = [4,5,random.randint(0,10),random.randint(0,5),random.randint(0,5), random.randint(40,60)]
-        vec3 = [5,4,random.randint(0,10),random.randint(0,5),random.randint(0,5), random.randint(40,60)]
+        vec1 = [4,4,random.randint(60,80),random.randint(70,80),random.randint(40,50), random.randint(40,60)]
+        vec2 = [4,5,random.randint(60,80),random.randint(70,80),random.randint(40,50), random.randint(40,60)]
+        vec3 = [5,4,random.randint(60,80),random.randint(70,80),random.randint(40,50), random.randint(40,60)]
         matrix = [vec1,vec2,vec3]
         coordinates_list = ["4_4","4_5","5_4"]
 
@@ -112,15 +112,15 @@ def stupid_data_generator():
             ## generate coordinates
             coordinates_checked = False
             while(not coordinates_checked):
-                x = random.randint(0,50)
-                y = random.randint(0,50)
+                x = random.randint(0,15)
+                y = random.randint(0,15)
                 coordinates = str(x)+"_"+str(y)
                 if(coordinates not in coordinates_list):
                     coordinates_checked = True
                     coordinates_list.append(coordinates)
 
             ## craft vector
-            vector = [x,y,random.randint(0,10),random.randint(0,5),random.randint(0,5), random.randint(0,10)]
+            vector = [x,y,random.randint(60,80),random.randint(70,80),random.randint(40,50), random.randint(40,60)]
             matrix.append(vector)
 
         ## save data
@@ -151,7 +151,7 @@ def stupid_data_generator():
                     coordinates_list.append(coordinates)
 
             ## craft vector
-            vector = [x,y,random.randint(0,10),random.randint(0,5),random.randint(0,5), random.randint(0,10)]
+            vector = [x,y,random.randint(60,90),random.randint(0,5),random.randint(0,5), random.randint(0,10)]
             matrix.append(vector)
 
         ## save data
@@ -177,7 +177,7 @@ def normalize_dataset():
     marker_list = []
 
     ## identify target files & markers
-    target_files = glob.glob("stupid_data/*.csv")
+    target_files = glob.glob("raw_data/*_mean.csv")
     df = pd.read_csv(target_files[0])
     for k in list(df.keys()):
         if(k not in ["centroid_X", "centroid_Y"]):
@@ -215,6 +215,7 @@ def normalize_dataset():
 
         #-> save dataframe to normalize file
         output_name = tf.replace(".csv", "_normalized.csv")
+        output_name = output_name.replace("raw_data", "normalized_data")
         df.to_csv(output_name, index=False)
 
 
@@ -232,7 +233,7 @@ def simple_discretization():
     ## parameters
 
     ## loop over target files
-    for tf in glob.glob("stupid_data/*_normalized.csv"):
+    for tf in glob.glob("normalized_data/*_normalized.csv"):
 
         #-> init new matrix
         matrix = []
@@ -264,8 +265,10 @@ def simple_discretization():
                         new_scalar = 3
                     elif(scalar <= 1):
                         new_scalar = 4
-                    else:
+                    elif(scalar <= 2):
                         new_scalar = 5
+                    else:
+                        new_scalar = 6
 
                     # update vector
                     vector.append(new_scalar)
@@ -276,17 +279,57 @@ def simple_discretization():
         ## craft and save csv
         df = pd.DataFrame(matrix, columns=header)
         output_name = tf.replace(".csv", "_discretized.csv")
+        output_name = output_name.replace("normalized_data", "discretized_data")
         df.to_csv(output_name, index=False)
 
 
 
 
 
+def craft_manifest():
+    """
+    """
 
+    ## importation
+    import pandas as pd
+    import os
+
+    ## parameters
+    discretized_to_label = {}
+
+    ## load manifest
+    df = pd.read_csv("raw_data/OMIQ_metadata.csv")
+    for index, row in df.iterrows():
+
+        #-> extract file_name
+        filename = row["Filename"]
+        filename = "discretized_data/"+str(filename)
+        filename = filename.replace(".fcs", "_normalized_discretized.csv")
+
+        #-> extract label
+        label = row["Lymphoma"]
+        if(label != "Lymphoma"):
+            label = 1
+        else:
+            label = 2
+
+        #-> update dict
+        if(os.path.isfile(filename)):
+            discretized_to_label[filename] = label
+
+    ## write label file
+    manifest_file = open("manifest_lymphoma_discretized.csv", "w")
+    manifest_file.write("FILENAME,LABEL\n")
+    for fname in discretized_to_label.keys():
+        manifest_file.write(str(fname)+","+str(discretized_to_label[fname])+"\n")
+    manifest_file.close()
+
+
+#craft_manifest()
 
 
 
 #stupid_data_generator()
 #craft_mean_dataset()
 #normalize_dataset()
-simple_discretization()
+#simple_discretization()

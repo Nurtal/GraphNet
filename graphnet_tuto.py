@@ -33,6 +33,7 @@ def load_tuto_dataset():
 
     return(graphs, graph_labels)
 
+
 def load_real_dataset():
     """
     """
@@ -57,13 +58,13 @@ def load_real_dataset():
 
     ## loop over roi data file
     cmpt_progress = 0
-    total = len(glob.glob("raw_data/*.csv"))
-    for fcs_file in glob.glob("raw_data/*.csv"):
+    total = len(glob.glob("discretized_data/*.csv"))
+    for fcs_file in glob.glob("discretized_data/*.csv"):
 
         #-> extract roi name
         roi_name = fcs_file.split("/")
         roi_name = roi_name[-1]
-        roi_name = roi_name.replace("_mean.csv", "")
+        roi_name = roi_name.replace("_mean_normalized_discretized.csv", "")
         while(roi_name[-1] == "_"):
             roi_name = roi_name[:-1]
 
@@ -90,17 +91,73 @@ def load_real_dataset():
 
 
 
+def load_stupid_dataset():
+    """
+    """
+
+    ## importation
+    import pandas as pd
+    import glob
+    import craft_graph
+
+    ## parameters
+    roi_to_label = {}
+    graph_list = []
+    label_list = []
+
+    ## load manifest & craft roi to label
+    manifest = pd.read_csv("raw_data/OMIQ_metadata.csv")
+    for index, row in manifest.iterrows():
+        if(row['Lymphoma'] == "Lymphoma"):
+            roi_to_label[row['Unnamed: 2']] = 2
+        else:
+            roi_to_label[row['Unnamed: 2']] = 1
+
+    ## loop over roi data file
+    cmpt_progress = 0
+    total = len(glob.glob("stupid_data/*_discretized.csv"))
+    for fcs_file in glob.glob("stupid_data/*_discretized.csv"):
+
+        #-> extract label
+        label = fcs_file.split("/")
+        label = label[-1]
+        label = label.split("_")
+        label = label[1]
+        if(label == "cat1"):
+            label = 1
+        elif(label == "cat2"):
+            label = 2
+
+        #--> create graph & update graph list
+        graph = craft_graph.craft_graph(fcs_file)
+        graph_list.append(graph)
+
+        #--> add label to label list
+        label_list.append(label)
+
+        #-> display progress
+        cmpt_progress +=1
+        progress = (float(cmpt_progress) / float(total))*100.0
+        print("[+][GRAPH-GENARATION] => "+str(progress)+"% {"+str(cmpt_progress)+"/"+str(total)+"}")
+
+
+    ## return graph list and labels
+    labels = pd.DataFrame(label_list)
+    return(graph_list, labels)
+
 
 
 ## load dataset
 dataset = load_real_dataset()
 #dataset = load_tuto_dataset()
+#dataset = load_stupid_dataset()
 graphs = dataset[0]
 graph_labels = dataset[1]
 print("[+] Data extracted")
 
 ## format labels
 graph_labels = pd.get_dummies(graph_labels, drop_first=True)
+print(graph_labels)
 
 ## Prepare graph generator
 generator = PaddedGraphGenerator(graphs=graphs)

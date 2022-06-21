@@ -14,7 +14,7 @@ def craft_edge_dataframe(fcs_file):
     import numpy as np
 
     ## parameters
-    neighbour_radius = 4
+    neighbour_radius = 10
     node_to_coordinates = {}
     edge_list = []
     node_cmpt = 0
@@ -62,6 +62,12 @@ def craft_edge_dataframe(fcs_file):
     ## craft datafrale from edge list
     df = pd.DataFrame(edge_list, columns = ['source', 'target'])
 
+    ## save dataframe
+    output_name = fcs_file.split("/")
+    output_name = output_name[-1]
+    output_name = "graph/edges/"+str(output_name)
+    df.to_csv(output_name, index=False)
+
     ## return dataframe
     return df
 
@@ -107,6 +113,12 @@ def craft_node_dataframe(fcs_file):
     ## craft dataframe from list of vector
     df = pd.DataFrame(data, columns = header)
     df = df.set_index("ID")
+
+    ## save dataframe
+    output_name = fcs_file.split("/")
+    output_name = output_name[-1]
+    output_name = "graph/nodes/"+str(output_name)
+    df.to_csv(output_name, index=False)
 
     ## return dataframe
     return df
